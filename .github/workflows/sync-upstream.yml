@@ -1,0 +1,30 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每小时检查一次（UTC 时间）
+  workflow_dispatch:     # 允许手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整 Git 历史记录
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/ORIGINAL_OWNER/ORIGINAL_REPOSITORY.git
+          git fetch upstream
+
+      - name: Sync all branches
+        run: |
+          # 遍历上游所有分支
+          for branch in $(git branch -r | grep 'upstream/' | sed 's/upstream\///'); do
+            # 尝试切换到分支（如果不存在则创建）
+            git checkout -B "$branch" "upstream/$branch" || exit 1
+            # 强制推送到 origin（覆盖本地更改）
+            git push --force origin "$branch"
+          done
